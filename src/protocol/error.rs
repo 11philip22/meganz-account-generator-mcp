@@ -13,7 +13,6 @@ pub enum McpErrorCode {
     INVALID_REQUEST,
     METHOD_NOT_FOUND,
     INVALID_PARAMS,
-    INTERNAL_ERROR,
     GENERATION_FAILED,
 }
 
@@ -23,7 +22,6 @@ impl McpErrorCode {
             Self::INVALID_REQUEST => "INVALID_REQUEST",
             Self::METHOD_NOT_FOUND => "METHOD_NOT_FOUND",
             Self::INVALID_PARAMS => "INVALID_PARAMS",
-            Self::INTERNAL_ERROR => "INTERNAL_ERROR",
             Self::GENERATION_FAILED => "GENERATION_FAILED",
         }
     }
