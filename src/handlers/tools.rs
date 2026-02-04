@@ -1,0 +1,30 @@
+use serde_json::{json, Value};
+
+use crate::state::AppState;
+
+pub fn handle_tools_list(state: &AppState) -> Value {
+    json!({
+        "tools": [
+            {
+                "name": "mega.generate",
+                "description": "Generate Mega.nz accounts using temporary email addresses",
+                "params_schema": {
+                    "type": "object",
+                    "properties": {
+                        "count": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": state.max_count,
+                            "default": 1
+                        },
+                        "password": {
+                            "type": "string",
+                            "description": "Password for the generated account",
+                            "default": state.default_password.as_str()
+                        }
+                    }
+                }
+            }
+        ]
+    })
+}

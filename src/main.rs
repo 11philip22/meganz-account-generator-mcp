@@ -69,6 +69,7 @@ async fn dispatch_request(state: &AppState, request: McpRequest) -> McpResponse 
     }
 
     match request.method.as_str() {
+        "tools.list" => McpResponse::ok(request.id, handlers::handle_tools_list(state)),
         "mega.generate" => match handlers::handle_generate(state, request.params).await {
             Ok(result) => McpResponse::ok(request.id, result),
             Err(error) => McpResponse::err(request.id, error),

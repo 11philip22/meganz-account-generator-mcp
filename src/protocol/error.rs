@@ -49,10 +49,6 @@ impl McpErrorBody {
         Self::new(McpErrorCode::INVALID_PARAMS, message)
     }
 
-    pub fn internal_error(message: impl Into<String>) -> Self {
-        Self::new(McpErrorCode::INTERNAL_ERROR, message)
-    }
-
     pub fn generation_failed(message: impl Into<String>) -> Self {
         Self::new(McpErrorCode::GENERATION_FAILED, message)
     }
