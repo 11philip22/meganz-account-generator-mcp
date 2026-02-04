@@ -8,11 +8,11 @@ pub fn handle_tools_list(state: &AppState) -> Value {
             {
                 "name": "mega/generate",
                 "description": "Generate Mega.nz accounts using temporary email addresses",
-                "params_schema": {
+                "inputSchema": {
                     "type": "object",
                     "properties": {
                         "count": {
-                            "type": "number",
+                            "type": "integer",
                             "minimum": 1,
                             "maximum": state.max_count,
                             "default": 1

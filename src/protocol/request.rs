@@ -6,7 +6,8 @@ use serde_json::Value;
 pub struct McpRequest {
     #[serde(default)]
     pub jsonrpc: Option<String>,
-    pub id: Value,
+    #[serde(default)]
+    pub id: Option<Value>,
     pub method: String,
     pub params: Option<Value>,
 }

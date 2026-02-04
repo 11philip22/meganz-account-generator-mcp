@@ -1,6 +1,0 @@
-[mcp] <= {"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"elicitation":{}},"clientInfo":{"name":"codex-mcp-client","title":"Codex","version":"0.95.0"}}}
-[mcp] => {"jsonrpc":"2.0","id":0,"result":{"capabilities":{"tools":{}},"protocolVersion":"2025-06-18","serverInfo":{"name":"meganz-account-generator-mcp","version":"0.1.0"}}}
-[mcp] <= {"jsonrpc":"2.0","method":"notifications/initialized"}
-[mcp] => {"jsonrpc":"2.0","id":"unknown","error":{"code":"INVALID_REQUEST","message":"malformed request JSON"}}
-[mcp] <= {"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{"progressToken":0}}}
-[mcp] => {"jsonrpc":"2.0","id":1,"result":{"tools":[{"description":"Generate Mega.nz accounts using temporary email addresses","name":"mega/generate","params_schema":{"properties":{"count":{"default":1,"maximum":5,"minimum":1,"type":"number"},"password":{"default":"Mcp!Passw0rd2026","description":"Password for the generated account","type":"string"}},"type":"object"}}]}}

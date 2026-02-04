@@ -6,7 +6,6 @@ use std::fs::OpenOptions;
 use std::io::{self, BufRead, Write};
 
 use protocol::{McpErrorBody, McpRequest, McpResponse};
-use serde_json::json;
 use state::AppState;
 
 fn main() {
@@ -97,47 +96,59 @@ fn log_line(log_file: &mut Option<std::fs::File>, line: &str) {
     }
 }
 
-async fn dispatch_request(state: &AppState, request: McpRequest) -> McpResponse {
-    if !request.id.is_string() && !request.id.is_number() {
-        return McpResponse::err(
-            request.id,
-            McpErrorBody::invalid_request("id must be a string or number"),
-        );
+async fn dispatch_request(state: &AppState, request: McpRequest) -> Option<McpResponse> {
+    if request
+        .jsonrpc
+        .as_deref()
+        .is_some_and(|version| version != "2.0")
+    {
+        return Some(McpResponse::err(
+            request.id.unwrap_or(serde_json::Value::Null),
+            McpErrorBody::invalid_request("jsonrpc must be 2.0"),
+        ));
     }
 
-    if request.jsonrpc.as_deref().is_some_and(|version| version != "2.0") {
-        return McpResponse::err(
-            request.id,
-            McpErrorBody::invalid_request("jsonrpc must be 2.0"),
-        );
+    if request.id.is_none() {
+        return None;
+    }
+
+    let id = request.id.unwrap_or(serde_json::Value::Null);
+
+    if !id.is_string() && !id.is_number() {
+        return Some(McpResponse::err(
+            id,
+            McpErrorBody::invalid_request("id must be a string or number"),
+        ));
     }
 
     if request.method.trim().is_empty() {
-        return McpResponse::err(
-            request.id,
+        return Some(McpResponse::err(
+            id,
             McpErrorBody::invalid_request("method is required"),
-        );
+        ));
     }
 
     match request.method.as_str() {
         "initialize" => match handlers::handle_initialize(request.params) {
-            Ok(result) => McpResponse::ok(request.id, result),
-            Err(error) => McpResponse::err(request.id, error),
+            Ok(result) => Some(McpResponse::ok(id, result)),
+            Err(error) => Some(McpResponse::err(id, error)),
         },
         "server/info" => match handlers::handle_server_info(request.params) {
-            Ok(result) => McpResponse::ok(request.id, result),
-            Err(error) => McpResponse::err(request.id, error),
+            Ok(result) => Some(McpResponse::ok(id, result)),
+            Err(error) => Some(McpResponse::err(id, error)),
         },
-        "tools/list" => {
-            McpResponse::ok(request.id, handlers::handle_tools_list(state))
-        }
+        "tools/list" => Some(McpResponse::ok(id, handlers::handle_tools_list(state))),
+        "tools/call" => match handlers::handle_tool_call(state, request.params).await {
+            Ok(result) => Some(McpResponse::ok(id, result)),
+            Err(error) => Some(McpResponse::err(id, error)),
+        },
         "mega/generate" => match handlers::handle_generate(state, request.params).await {
-            Ok(result) => McpResponse::ok(request.id, result),
-            Err(error) => McpResponse::err(request.id, error),
+            Ok(result) => Some(McpResponse::ok(id, result)),
+            Err(error) => Some(McpResponse::err(id, error)),
         },
-        _ => McpResponse::err(
-            request.id,
+        _ => Some(McpResponse::err(
+            id,
             McpErrorBody::method_not_found("unknown method"),
-        ),
+        )),
     }
 }

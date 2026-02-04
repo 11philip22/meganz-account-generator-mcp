@@ -40,12 +40,9 @@ pub async fn handle_generate(
 
     let mut accounts = Vec::with_capacity(count as usize);
     for _ in 0..count {
-        let account = generator
-            .generate(&password, None)
-            .await
-            .map_err(|err| {
-                McpErrorBody::generation_failed(format!("account generation failed: {err}"))
-            })?;
+        let account = generator.generate(&password, None).await.map_err(|err| {
+            McpErrorBody::generation_failed(format!("account generation failed: {err}"))
+        })?;
 
         accounts.push(json!({
             "email": account.email,

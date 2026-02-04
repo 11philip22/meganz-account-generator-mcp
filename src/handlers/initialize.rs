@@ -14,9 +14,8 @@ struct InitializeParams {
 }
 
 pub fn handle_initialize(params: Option<Value>) -> Result<Value, McpErrorBody> {
-    let params_value = params.ok_or_else(|| {
-        McpErrorBody::invalid_params("initialize requires params object")
-    })?;
+    let params_value =
+        params.ok_or_else(|| McpErrorBody::invalid_params("initialize requires params object"))?;
     let init: InitializeParams = serde_json::from_value(params_value)
         .map_err(|_| McpErrorBody::invalid_params("invalid initialize params shape"))?;
 
