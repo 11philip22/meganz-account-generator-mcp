@@ -115,6 +115,5 @@ If this crate saves you time or helps your work, support is appreciated:
 This project is licensed under the MIT License; see the [license](license) file for details.
 
 ## Todo
-- default count should be in state
 - tools and tool_call should be in one file
 - cmdline arg for proxy

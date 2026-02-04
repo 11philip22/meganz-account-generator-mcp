@@ -15,7 +15,7 @@ pub fn handle_tools_list(state: &AppState) -> Value {
                             "type": "integer",
                             "minimum": 1,
                             "maximum": state.max_count,
-                            "default": 1
+                            "default": state.default_count
                         },
                         "password": {
                             "type": "string",

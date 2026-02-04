@@ -5,8 +5,6 @@ use serde_json::{Value, json};
 use crate::protocol::McpErrorBody;
 use crate::state::AppState;
 
-const DEFAULT_COUNT: u32 = 1;
-
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GenerateParams {
@@ -19,7 +17,7 @@ pub async fn handle_generate(
     params: Option<Value>,
 ) -> Result<Value, McpErrorBody> {
     let parsed_params = parse_params(params)?;
-    let count = parsed_params.count.unwrap_or(DEFAULT_COUNT);
+    let count = parsed_params.count.unwrap_or(state.default_count);
     let password = parsed_params
         .password
         .unwrap_or_else(|| state.default_password.clone());
