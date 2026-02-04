@@ -91,7 +91,7 @@ MEGA_PROXY_URL=http://127.0.0.1:8080 cargo run
 Then send JSON lines to stdin, for example:
 
 ```json
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"debug","version":"0.1.0"},"capabilities":{}}}
+{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"elicitation":{}},"clientInfo":{"name":"codex-mcp-client","title":"Codex","version":"0.95.0"}}}
 {"id":"1","method":"server/info","params":null}
 {"id":"2","method":"tools/list","params":null}
 {"id":"3","method":"mega/generate","params":{"count":1,"password":"StrongPass123!"}}
