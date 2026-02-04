@@ -14,13 +14,9 @@ pub async fn run() -> Result<(), Error> {
     let mut lines = stdin.lines();
     let mut stdout = io::stdout();
     let app_state = AppState::default();
-    let debug_enabled = debug_enabled();
     let mut log_file = open_log_file().await;
 
     while let Some(raw_line) = lines.next_line().await.map_err(Error::ReadStdin)? {
-        if debug_enabled {
-            eprintln!("[mcp-debug] <= {raw_line}");
-        }
         log_line(&mut log_file, &format!("[mcp] <= {raw_line}")).await;
 
         let response = match serde_json::from_str::<McpRequest>(&raw_line) {
@@ -32,17 +28,11 @@ pub async fn run() -> Result<(), Error> {
         };
 
         let Some(response) = response else {
-            if debug_enabled {
-                eprintln!("[mcp-debug] => <no response>");
-            }
             log_line(&mut log_file, "[mcp] => <no response>").await;
             continue;
         };
 
         let serialized = serde_json::to_string(&response).map_err(Error::SerializeResponse)?;
-        if debug_enabled {
-            eprintln!("[mcp-debug] => {serialized}");
-        }
         log_line(&mut log_file, &format!("[mcp] => {serialized}")).await;
 
         stdout
@@ -74,12 +64,6 @@ async fn open_log_file() -> Option<File> {
             None
         }
     }
-}
-
-fn debug_enabled() -> bool {
-    env::var("MCP_DEBUG")
-        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
-        .unwrap_or(false)
 }
 
 async fn log_line(log_file: &mut Option<File>, line: &str) {
