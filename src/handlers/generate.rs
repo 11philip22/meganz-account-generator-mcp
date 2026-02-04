@@ -32,9 +32,11 @@ pub async fn handle_generate(
         return Err(McpErrorBody::invalid_params("password cannot be empty"));
     }
 
-    let generator = AccountGenerator::new(None).await.map_err(|_| {
-        McpErrorBody::generation_failed("failed to initialize MEGA account generator")
-    })?;
+    let generator = AccountGenerator::new(state.proxy_url.as_deref())
+        .await
+        .map_err(|_| {
+            McpErrorBody::generation_failed("failed to initialize MEGA account generator")
+        })?;
 
     let mut accounts = Vec::with_capacity(count as usize);
     for _ in 0..count {

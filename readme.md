@@ -82,6 +82,12 @@ Example result:
 cargo run
 ```
 
+Optional proxy support:
+
+```bash
+MEGA_PROXY_URL=http://127.0.0.1:8080 cargo run
+```
+
 Then send JSON lines to stdin, for example:
 
 ```json
@@ -113,7 +119,3 @@ If this crate saves you time or helps your work, support is appreciated:
 ## License
 
 This project is licensed under the MIT License; see the [license](license) file for details.
-
-## Todo
-- tools and tool_call should be in one file
-- cmdline arg for proxy
