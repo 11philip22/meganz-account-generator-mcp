@@ -6,7 +6,7 @@ pub fn handle_tools_list(state: &AppState) -> Value {
     json!({
         "tools": [
             {
-                "name": "mega.generate",
+                "name": "mega/generate",
                 "description": "Generate Mega.nz accounts using temporary email addresses",
                 "params_schema": {
                     "type": "object",

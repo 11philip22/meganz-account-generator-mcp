@@ -85,9 +85,10 @@ cargo run
 Then send JSON lines to stdin, for example:
 
 ```json
-{"id":"1","method":"server.info","params":null}
-{"id":"2","method":"tools.list","params":null}
-{"id":"3","method":"mega.generate","params":{"count":1,"password":"StrongPass123!"}}
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"debug","version":"0.1.0"},"capabilities":{}}}
+{"id":"1","method":"server/info","params":null}
+{"id":"2","method":"tools/list","params":null}
+{"id":"3","method":"mega/generate","params":{"count":1,"password":"StrongPass123!"}}
 ```
 
 ## Notes

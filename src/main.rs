@@ -5,6 +5,7 @@ mod state;
 use std::io::{self, BufRead, Write};
 
 use protocol::{McpErrorBody, McpRequest, McpResponse};
+use serde_json::json;
 use state::AppState;
 
 fn main() {
@@ -36,7 +37,7 @@ fn main() {
         let response = match serde_json::from_str::<McpRequest>(&raw_line) {
             Ok(request) => runtime.block_on(dispatch_request(&app_state, request)),
             Err(_) => McpResponse::err(
-                "unknown",
+                json!("unknown"),
                 McpErrorBody::invalid_request("malformed request JSON"),
             ),
         };
@@ -61,6 +62,20 @@ fn main() {
 }
 
 async fn dispatch_request(state: &AppState, request: McpRequest) -> McpResponse {
+    if !request.id.is_string() && !request.id.is_number() {
+        return McpResponse::err(
+            request.id,
+            McpErrorBody::invalid_request("id must be a string or number"),
+        );
+    }
+
+    if request.jsonrpc.as_deref().is_some_and(|version| version != "2.0") {
+        return McpResponse::err(
+            request.id,
+            McpErrorBody::invalid_request("jsonrpc must be 2.0"),
+        );
+    }
+
     if request.method.trim().is_empty() {
         return McpResponse::err(
             request.id,
@@ -69,12 +84,18 @@ async fn dispatch_request(state: &AppState, request: McpRequest) -> McpResponse 
     }
 
     match request.method.as_str() {
-        "server.info" => match handlers::handle_server_info(request.params) {
+        "initialize" => match handlers::handle_initialize(request.params) {
             Ok(result) => McpResponse::ok(request.id, result),
             Err(error) => McpResponse::err(request.id, error),
         },
-        "tools.list" => McpResponse::ok(request.id, handlers::handle_tools_list(state)),
-        "mega.generate" => match handlers::handle_generate(state, request.params).await {
+        "server/info" => match handlers::handle_server_info(request.params) {
+            Ok(result) => McpResponse::ok(request.id, result),
+            Err(error) => McpResponse::err(request.id, error),
+        },
+        "tools/list" => {
+            McpResponse::ok(request.id, handlers::handle_tools_list(state))
+        }
+        "mega/generate" => match handlers::handle_generate(state, request.params).await {
             Ok(result) => McpResponse::ok(request.id, result),
             Err(error) => McpResponse::err(request.id, error),
         },
