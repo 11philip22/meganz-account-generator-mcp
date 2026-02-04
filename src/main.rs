@@ -2,6 +2,7 @@ mod handlers;
 mod protocol;
 mod state;
 
+use std::fs::OpenOptions;
 use std::io::{self, BufRead, Write};
 
 use protocol::{McpErrorBody, McpRequest, McpResponse};
@@ -24,15 +25,33 @@ fn main() {
     let stdout = io::stdout();
     let mut output = stdout.lock();
     let app_state = AppState::default();
+    let debug_enabled = std::env::var("MCP_DEBUG")
+        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    let mut log_file = match std::env::var("MCP_LOG_FILE") {
+        Ok(path) => match OpenOptions::new().create(true).append(true).open(path) {
+            Ok(file) => Some(file),
+            Err(err) => {
+                eprintln!("log file open error: {err}");
+                None
+            }
+        },
+        Err(_) => None,
+    };
 
     for line in stdin.lock().lines() {
         let raw_line = match line {
             Ok(value) => value,
             Err(err) => {
                 eprintln!("stdin read error: {err}");
+                log_line(&mut log_file, &format!("stdin read error: {err}"));
                 break;
             }
         };
+        if debug_enabled {
+            eprintln!("[mcp-debug] <= {raw_line}");
+        }
+        log_line(&mut log_file, &format!("[mcp] <= {raw_line}"));
 
         let response = match serde_json::from_str::<McpRequest>(&raw_line) {
             Ok(request) => runtime.block_on(dispatch_request(&app_state, request)),
@@ -46,18 +65,35 @@ fn main() {
             Ok(value) => value,
             Err(err) => {
                 eprintln!("response serialization error: {err}");
+                log_line(
+                    &mut log_file,
+                    &format!("response serialization error: {err}"),
+                );
                 continue;
             }
         };
+        if debug_enabled {
+            eprintln!("[mcp-debug] => {serialized}");
+        }
+        log_line(&mut log_file, &format!("[mcp] => {serialized}"));
 
         if let Err(err) = writeln!(output, "{serialized}") {
             eprintln!("stdout write error: {err}");
+            log_line(&mut log_file, &format!("stdout write error: {err}"));
             break;
         }
         if let Err(err) = output.flush() {
             eprintln!("stdout flush error: {err}");
+            log_line(&mut log_file, &format!("stdout flush error: {err}"));
             break;
         }
+    }
+}
+
+fn log_line(log_file: &mut Option<std::fs::File>, line: &str) {
+    if let Some(file) = log_file.as_mut() {
+        let _ = writeln!(file, "{line}");
+        let _ = file.flush();
     }
 }
 
