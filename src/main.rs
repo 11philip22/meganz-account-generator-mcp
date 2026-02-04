@@ -142,16 +142,8 @@ async fn dispatch_request(state: &AppState, request: McpRequest) -> Option<McpRe
             Ok(result) => Some(McpResponse::ok(id, result)),
             Err(error) => Some(McpResponse::err(id, error)),
         },
-        "server/info" => match handlers::handle_server_info(request.params) {
-            Ok(result) => Some(McpResponse::ok(id, result)),
-            Err(error) => Some(McpResponse::err(id, error)),
-        },
         "tools/list" => Some(McpResponse::ok(id, handlers::handle_tools_list(state))),
         "tools/call" => match handlers::handle_tool_call(state, request.params).await {
-            Ok(result) => Some(McpResponse::ok(id, result)),
-            Err(error) => Some(McpResponse::err(id, error)),
-        },
-        "mega/generate" => match handlers::handle_generate(state, request.params).await {
             Ok(result) => Some(McpResponse::ok(id, result)),
             Err(error) => Some(McpResponse::err(id, error)),
         },
