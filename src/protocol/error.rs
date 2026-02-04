@@ -8,21 +8,20 @@ pub struct McpErrorBody {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[allow(non_camel_case_types)]
 pub enum McpErrorCode {
-    INVALID_REQUEST,
-    METHOD_NOT_FOUND,
-    INVALID_PARAMS,
-    GENERATION_FAILED,
+    InvalidRequest,
+    MethodNotFound,
+    InvalidParams,
+    GenerationFailed,
 }
 
 impl McpErrorCode {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::INVALID_REQUEST => "INVALID_REQUEST",
-            Self::METHOD_NOT_FOUND => "METHOD_NOT_FOUND",
-            Self::INVALID_PARAMS => "INVALID_PARAMS",
-            Self::GENERATION_FAILED => "GENERATION_FAILED",
+            Self::InvalidRequest => "INVALID_REQUEST",
+            Self::MethodNotFound => "METHOD_NOT_FOUND",
+            Self::InvalidParams => "INVALID_PARAMS",
+            Self::GenerationFailed => "GENERATION_FAILED",
         }
     }
 }
@@ -36,18 +35,18 @@ impl McpErrorBody {
     }
 
     pub fn invalid_request(message: impl Into<String>) -> Self {
-        Self::new(McpErrorCode::INVALID_REQUEST, message)
+        Self::new(McpErrorCode::InvalidRequest, message)
     }
 
     pub fn method_not_found(message: impl Into<String>) -> Self {
-        Self::new(McpErrorCode::METHOD_NOT_FOUND, message)
+        Self::new(McpErrorCode::MethodNotFound, message)
     }
 
     pub fn invalid_params(message: impl Into<String>) -> Self {
-        Self::new(McpErrorCode::INVALID_PARAMS, message)
+        Self::new(McpErrorCode::InvalidParams, message)
     }
 
     pub fn generation_failed(message: impl Into<String>) -> Self {
-        Self::new(McpErrorCode::GENERATION_FAILED, message)
+        Self::new(McpErrorCode::GenerationFailed, message)
     }
 }

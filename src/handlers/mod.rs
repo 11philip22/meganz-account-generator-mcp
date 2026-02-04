@@ -1,5 +1,4 @@
 pub mod generate;
-pub mod info;
 pub mod initialize;
 pub mod tool_call;
 pub mod tools;

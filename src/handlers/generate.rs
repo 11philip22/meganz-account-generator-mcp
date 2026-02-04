@@ -1,6 +1,6 @@
 use meganz_account_generator::AccountGenerator;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::protocol::McpErrorBody;
 use crate::state::AppState;
