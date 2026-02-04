@@ -4,6 +4,7 @@ mod state;
 
 use std::fs::OpenOptions;
 use std::io::{self, BufRead, Write};
+use serde_json::json;
 
 use protocol::{McpErrorBody, McpRequest, McpResponse};
 use state::AppState;
@@ -54,10 +55,18 @@ fn main() {
 
         let response = match serde_json::from_str::<McpRequest>(&raw_line) {
             Ok(request) => runtime.block_on(dispatch_request(&app_state, request)),
-            Err(_) => McpResponse::err(
+            Err(_) => Some(McpResponse::err(
                 json!("unknown"),
                 McpErrorBody::invalid_request("malformed request JSON"),
-            ),
+            )),
+        };
+
+        let Some(response) = response else {
+            if debug_enabled {
+                eprintln!("[mcp-debug] => <no response>");
+            }
+            log_line(&mut log_file, "[mcp] => <no response>");
+            continue;
         };
 
         let serialized = match serde_json::to_string(&response) {
