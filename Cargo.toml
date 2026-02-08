@@ -3,6 +3,14 @@ name = "meganz-account-generator-mcp"
 version = "0.1.0"
 edition = "2024"
 
+description = "A minimal MCP-style JSON-over-stdio server in Rust for generating MEGA.nz accounts"
+license = "MIT"
+repository = "https://github.com/11philip22/meganz-account-generator-mcp"
+# crates.io allows up to 5 keywords.
+keywords = ["mega", "meganz", "mcp", "account-generator", "automation"]
+# Keep categories to known crates.io categories.
+categories = ["api-bindings", "command-line-utilities"]
+
 [dependencies]
 meganz-account-generator = "0.3.4"
 serde = { version = "1", features = ["derive"] }
