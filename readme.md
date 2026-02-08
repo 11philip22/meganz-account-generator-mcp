@@ -1,7 +1,7 @@
 # meganz-account-generator-mcp
 
+[![crates.io](https://img.shields.io/crates/v/meganz-account-generator-mcp.svg)](https://crates.io/crates/meganz-account-generator-mcp)
 [![MCP transport: stdio](https://img.shields.io/badge/MCP%20transport-stdio-informational)](#overview)
-[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macOS-blue)](#overview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/11philip22/meganz-account-generator-mcp/pulls)
 
