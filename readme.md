@@ -88,6 +88,22 @@ Optional proxy support:
 MEGA_PROXY_URL=http://127.0.0.1:8080 cargo run
 ```
 
+Or via command-line flags:
+
+```bash
+cargo run -- --proxy-url http://127.0.0.1:8080
+```
+
+Optional log file support (env var or flag):
+
+```bash
+MCP_LOG_FILE=./mcp.log cargo run
+```
+
+```bash
+cargo run -- --log-file ./mcp.log
+```
+
 Then send JSON lines to stdin, for example:
 
 ```json

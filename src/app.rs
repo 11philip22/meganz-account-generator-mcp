@@ -1,5 +1,3 @@
-use std::env;
-
 use serde_json::{Value, json};
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -9,12 +7,12 @@ use crate::handlers;
 use crate::protocol::{McpErrorBody, McpRequest, McpResponse};
 use crate::state::AppState;
 
-pub async fn run() -> Result<(), Error> {
+pub async fn run(log_file: Option<String>, proxy_url: Option<String>) -> Result<(), Error> {
     let stdin = BufReader::new(io::stdin());
     let mut lines = stdin.lines();
     let mut stdout = io::stdout();
-    let app_state = AppState::default();
-    let mut log_file = open_log_file().await;
+    let app_state = AppState::new(proxy_url);
+    let mut log_file = open_log_file(log_file).await;
 
     while let Some(raw_line) = lines.next_line().await.map_err(Error::ReadStdin)? {
         log_line(&mut log_file, &format!("[mcp] <= {raw_line}")).await;
@@ -46,10 +44,10 @@ pub async fn run() -> Result<(), Error> {
     Ok(())
 }
 
-async fn open_log_file() -> Option<File> {
-    let path = match env::var("MCP_LOG_FILE") {
-        Ok(path) => path,
-        Err(_) => return None,
+async fn open_log_file(path_override: Option<String>) -> Option<File> {
+    let path = match path_override {
+        Some(path) if !path.trim().is_empty() => path,
+        _ => return None,
     };
 
     match OpenOptions::new()
