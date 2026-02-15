@@ -1,6 +1,7 @@
 use serde_json::{Value, json};
-use tokio::fs::{File, OpenOptions};
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tracing::info;
+use tracing_subscriber::{EnvFilter, fmt};
 
 use crate::error::Error;
 use crate::handlers;
@@ -12,10 +13,11 @@ pub async fn run(log_file: Option<String>, proxy_url: Option<String>) -> Result<
     let mut lines = stdin.lines();
     let mut stdout = io::stdout();
     let app_state = AppState::new(proxy_url);
-    let mut log_file = open_log_file(log_file).await;
+
+    init_tracing(log_file.clone());
 
     while let Some(raw_line) = lines.next_line().await.map_err(Error::ReadStdin)? {
-        log_line(&mut log_file, &format!("[mcp] <= {raw_line}")).await;
+        info!("[mcp] <= {raw_line}");
 
         let response = match serde_json::from_str::<McpRequest>(&raw_line) {
             Ok(request) => dispatch_request(&app_state, request).await,
@@ -26,12 +28,12 @@ pub async fn run(log_file: Option<String>, proxy_url: Option<String>) -> Result<
         };
 
         let Some(response) = response else {
-            log_line(&mut log_file, "[mcp] => <no response>").await;
+            info!("[mcp] => <no response>");
             continue;
         };
 
         let serialized = serde_json::to_string(&response).map_err(Error::SerializeResponse)?;
-        log_line(&mut log_file, &format!("[mcp] => {serialized}")).await;
+        info!("[mcp] => {serialized}");
 
         stdout
             .write_all(serialized.as_bytes())
@@ -44,38 +46,25 @@ pub async fn run(log_file: Option<String>, proxy_url: Option<String>) -> Result<
     Ok(())
 }
 
-async fn open_log_file(path_override: Option<String>) -> Option<File> {
-    let path = match path_override {
-        Some(path) if !path.trim().is_empty() => path,
-        _ => return None,
-    };
-
-    match OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-        .await
-    {
-        Ok(file) => Some(file),
-        Err(err) => {
-            eprintln!("log file open error: {err}");
-            None
-        }
+pub fn init_tracing(log_file: Option<String>) {
+    if let Some(path) = log_file {  
+        let file_appender =
+            tracing_appender::rolling::never(".", path);
+        fmt()
+            .with_env_filter(EnvFilter::from_default_env())
+            .with_writer(file_appender)
+            .without_time()
+            .with_level(false)
+            .with_target(false)
+            .with_thread_ids(false)
+            .with_thread_names(false)
+            .with_ansi(false)
+            .init();
+    } else {
+        fmt()
+            .with_env_filter(EnvFilter::from_default_env())
+            .init(); // default stderr formatting
     }
-}
-
-async fn log_line(log_file: &mut Option<File>, line: &str) {
-    let Some(file) = log_file.as_mut() else {
-        return;
-    };
-
-    if file.write_all(line.as_bytes()).await.is_err() {
-        return;
-    }
-    if file.write_all(b"\n").await.is_err() {
-        return;
-    }
-    let _ = file.flush().await;
 }
 
 async fn dispatch_request(state: &AppState, request: McpRequest) -> Option<McpResponse> {
