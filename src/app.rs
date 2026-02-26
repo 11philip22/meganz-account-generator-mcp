@@ -1,20 +1,17 @@
 use serde_json::{Value, json};
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tracing::info;
-use tracing_subscriber::{EnvFilter, fmt};
 
 use crate::error::Error;
 use crate::handlers;
 use crate::protocol::{McpErrorBody, McpRequest, McpResponse};
 use crate::state::AppState;
 
-pub async fn run(log_file: Option<String>, proxy_url: Option<String>) -> Result<(), Error> {
+pub async fn run(proxy_url: Option<String>) -> Result<(), Error> {
     let stdin = BufReader::new(io::stdin());
     let mut lines = stdin.lines();
     let mut stdout = io::stdout();
     let app_state = AppState::new(proxy_url);
-
-    init_tracing(log_file.clone());
 
     while let Some(raw_line) = lines.next_line().await.map_err(Error::ReadStdin)? {
         info!("[mcp] <= {raw_line}");
@@ -44,27 +41,6 @@ pub async fn run(log_file: Option<String>, proxy_url: Option<String>) -> Result<
     }
 
     Ok(())
-}
-
-pub fn init_tracing(log_file: Option<String>) {
-    if let Some(path) = log_file {  
-        let file_appender =
-            tracing_appender::rolling::never(".", path);
-        fmt()
-            .with_env_filter(EnvFilter::from_default_env())
-            .with_writer(file_appender)
-            .without_time()
-            .with_level(false)
-            .with_target(false)
-            .with_thread_ids(false)
-            .with_thread_names(false)
-            .with_ansi(false)
-            .init();
-    } else {
-        fmt()
-            .with_env_filter(EnvFilter::from_default_env())
-            .init(); // default stderr formatting
-    }
 }
 
 async fn dispatch_request(state: &AppState, request: McpRequest) -> Option<McpResponse> {
