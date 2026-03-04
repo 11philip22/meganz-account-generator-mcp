@@ -1,9 +1,5 @@
 mod app;
-mod error;
 mod handlers;
-mod protocol;
-mod state;
-use std::error::Error as _;
 use tracing_subscriber::{EnvFilter, fmt};
 
 use clap::Parser;
@@ -26,16 +22,11 @@ async fn main() {
 
     if let Err(error) = app::run(proxy_url).await {
         eprintln!("error: {error}");
-        let mut source = error.source();
-        while let Some(cause) = source {
-            eprintln!("caused by: {cause}");
-            source = cause.source();
-        }
         std::process::exit(1);
     }
 }
 
-pub fn init_tracing() {
+fn init_tracing() {
     fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .without_time()

@@ -1,9 +1,20 @@
 use meganz_account_generator::AccountGenerator;
-use serde::Deserialize;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use crate::protocol::McpErrorBody;
-use crate::state::AppState;
+pub const DEFAULT_COUNT: u32 = 1;
+pub const MAX_COUNT: u32 = 5;
+pub const DEFAULT_PASSWORD: &str = "Mcp!Passw0rd2026";
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Arguments for mega/generate tool")]
+pub struct GenerateArgs {
+    #[schemars(description = "Number of accounts to generate")]
+    pub count: Option<u32>,
+    #[schemars(description = "Password for generated accounts")]
+    pub password: Option<String>,
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -13,36 +24,40 @@ pub struct GenerateParams {
 }
 
 pub async fn handle_generate(
-    state: &AppState,
     params: Option<Value>,
-) -> Result<Value, McpErrorBody> {
+    proxy_url: Option<String>,
+) -> Result<Value, anyhow::Error> {
     let parsed_params = parse_params(params)?;
-    let count = parsed_params.count.unwrap_or(state.default_count);
+    let count = parsed_params.count.unwrap_or(DEFAULT_COUNT);
     let password = parsed_params
         .password
-        .unwrap_or_else(|| state.default_password.clone());
+        .unwrap_or_else(|| DEFAULT_PASSWORD.to_string());
 
-    if !(1..=state.max_count).contains(&count) {
-        return Err(McpErrorBody::invalid_params(format!(
-            "count must be between 1 and {}",
-            state.max_count
-        )));
+    if !(1..=MAX_COUNT).contains(&count) {
+        anyhow::bail!("count must be between 1 and {}", MAX_COUNT);
     }
     if password.trim().is_empty() {
-        return Err(McpErrorBody::invalid_params("password cannot be empty"));
+        anyhow::bail!("password cannot be empty");
     }
 
-    let generator = AccountGenerator::new(state.proxy_url.as_deref())
+    let proxy = proxy_url
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| s.trim().to_string());
+    let mut builder = AccountGenerator::builder();
+    if let Some(url) = &proxy {
+        builder = builder.proxy(url);
+    }
+    let generator = builder
+        .build()
         .await
-        .map_err(|_| {
-            McpErrorBody::generation_failed("failed to initialize MEGA account generator")
-        })?;
+        .map_err(|_| anyhow::anyhow!("failed to initialize MEGA account generator"))?;
 
     let mut accounts = Vec::with_capacity(count as usize);
     for _ in 0..count {
-        let account = generator.generate(&password, None).await.map_err(|err| {
-            McpErrorBody::generation_failed(format!("account generation failed: {err}"))
-        })?;
+        let account = generator
+            .generate(&password)
+            .await
+            .map_err(|err| anyhow::anyhow!("account generation failed: {err}"))?;
 
         accounts.push(json!({
             "email": account.email,
@@ -54,13 +69,14 @@ pub async fn handle_generate(
     Ok(json!({ "accounts": accounts }))
 }
 
-fn parse_params(params: Option<Value>) -> Result<GenerateParams, McpErrorBody> {
+fn parse_params(params: Option<Value>) -> Result<GenerateParams, anyhow::Error> {
     match params {
         None => Ok(GenerateParams {
             count: None,
             password: None,
         }),
-        Some(value) => serde_json::from_value(value)
-            .map_err(|_| McpErrorBody::invalid_params("params must be an object")),
+        Some(value) => {
+            serde_json::from_value(value).map_err(|_| anyhow::anyhow!("params must be an object"))
+        }
     }
 }

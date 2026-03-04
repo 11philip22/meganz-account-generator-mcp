@@ -1,93 +1,67 @@
-use serde_json::{Value, json};
-use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tracing::info;
+use rmcp::{
+    ServerHandler, ServiceExt,
+    handler::server::{router::tool::ToolRouter, wrapper::Parameters},
+    model::*,
+    tool, tool_handler, tool_router,
+};
 
-use crate::error::Error;
-use crate::handlers;
-use crate::protocol::{McpErrorBody, McpRequest, McpResponse};
-use crate::state::AppState;
+use crate::handlers::{GenerateArgs, handle_generate};
 
-pub async fn run(proxy_url: Option<String>) -> Result<(), Error> {
-    let stdin = BufReader::new(io::stdin());
-    let mut lines = stdin.lines();
-    let mut stdout = io::stdout();
-    let app_state = AppState::new(proxy_url);
-
-    while let Some(raw_line) = lines.next_line().await.map_err(Error::ReadStdin)? {
-        info!("[mcp] <= {raw_line}");
-
-        let response = match serde_json::from_str::<McpRequest>(&raw_line) {
-            Ok(request) => dispatch_request(&app_state, request).await,
-            Err(_) => Some(McpResponse::err(
-                json!("unknown"),
-                McpErrorBody::invalid_request("malformed request JSON"),
-            )),
-        };
-
-        let Some(response) = response else {
-            info!("[mcp] => <no response>");
-            continue;
-        };
-
-        let serialized = serde_json::to_string(&response).map_err(Error::SerializeResponse)?;
-        info!("[mcp] => {serialized}");
-
-        stdout
-            .write_all(serialized.as_bytes())
-            .await
-            .map_err(Error::WriteStdout)?;
-        stdout.write_all(b"\n").await.map_err(Error::WriteStdout)?;
-        stdout.flush().await.map_err(Error::FlushStdout)?;
-    }
-
-    Ok(())
+#[derive(Clone)]
+struct MegaServer {
+    proxy_url: Option<String>,
+    tool_router: ToolRouter<Self>,
 }
 
-async fn dispatch_request(state: &AppState, request: McpRequest) -> Option<McpResponse> {
-    if request
-        .jsonrpc
-        .as_deref()
-        .is_some_and(|version| version != "2.0")
-    {
-        return Some(McpResponse::err(
-            request.id.unwrap_or(Value::Null),
-            McpErrorBody::invalid_request("jsonrpc must be 2.0"),
-        ));
+#[tool_router]
+impl MegaServer {
+    fn new(proxy_url: Option<String>) -> Self {
+        Self {
+            proxy_url: proxy_url
+                .filter(|s| !s.trim().is_empty())
+                .map(|s| s.trim().to_string()),
+            tool_router: Self::tool_router(),
+        }
     }
 
-    if request.id.is_none() {
-        return None;
+    #[tool(
+        name = "mega/generate",
+        description = "Generate Mega.nz accounts using temporary email addresses"
+    )]
+    async fn generate(
+        &self,
+        Parameters(args): Parameters<GenerateArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let params = serde_json::to_value(&args).ok();
+        match handle_generate(params, self.proxy_url.clone()).await {
+            Ok(value) => {
+                let count = value["accounts"]
+                    .as_array()
+                    .map(|a| a.len())
+                    .unwrap_or(0);
+                let summary = format!("Generated {} account(s).", count);
+                let mut result = CallToolResult::success(vec![Content::text(summary)]);
+                result.structured_content = Some(value);
+                Ok(result)
+            }
+            Err(e) => Err(ErrorData::invalid_params(e.to_string(), None)),
+        }
     }
+}
 
-    let id = request.id.unwrap_or(Value::Null);
-
-    if !id.is_string() && !id.is_number() {
-        return Some(McpResponse::err(
-            id,
-            McpErrorBody::invalid_request("id must be a string or number"),
-        ));
+#[tool_handler]
+impl ServerHandler for MegaServer {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new("meganz-account-generator-mcp", "0.2.1"))
+            .with_protocol_version(ProtocolVersion::V_2024_11_05)
     }
+}
 
-    if request.method.trim().is_empty() {
-        return Some(McpResponse::err(
-            id,
-            McpErrorBody::invalid_request("method is required"),
-        ));
-    }
-
-    match request.method.as_str() {
-        "initialize" => match handlers::handle_initialize(request.params) {
-            Ok(result) => Some(McpResponse::ok(id, result)),
-            Err(error) => Some(McpResponse::err(id, error)),
-        },
-        "tools/list" => Some(McpResponse::ok(id, handlers::handle_tools_list(state))),
-        "tools/call" => match handlers::handle_tool_call(state, request.params).await {
-            Ok(result) => Some(McpResponse::ok(id, result)),
-            Err(error) => Some(McpResponse::err(id, error)),
-        },
-        _ => Some(McpResponse::err(
-            id,
-            McpErrorBody::method_not_found("unknown method"),
-        )),
-    }
+pub async fn run(proxy_url: Option<String>) -> anyhow::Result<()> {
+    let service = MegaServer::new(proxy_url)
+        .serve(rmcp::transport::stdio())
+        .await?;
+    service.waiting().await?;
+    Ok(())
 }

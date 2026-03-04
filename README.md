@@ -33,47 +33,58 @@ That's it! The `meganz-account-generator-mcp` command will now be available on y
 
 ## Quick Start
 
+The server uses the MCP protocol over stdio. You must complete the handshake (initialize → notifications/initialized) before calling tools.
+
 **1. Start the server:**
+
 ```bash
 cargo run
 ```
 
-**2. Send it a request to generate an account:**
+**2. Copy-paste each line below and press Enter after each:**
+
 ```json
-{"id":"1","method":"mega/generate","params":{"count":1,"password":"MyPassword123!"}}
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"test","version":"1.0"},"capabilities":{}}}
 ```
 
-**3. You'll get back the new account details:**
+```json
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+```
+
+```json
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"mega/generate","arguments":{"count":1,"password":"MyPassword123!"}}}
+```
+
+**3. Example response** (use `structuredContent` for clean JSON; `content` has a human-readable summary):
+
 ```json
 {
-  "accounts": [
-    {
-      "email": "example@mega.nz",
-      "password": "MyPassword123!",
-      "name": "Example Name"
-    }
-  ]
+  "content": [{"type":"text","text":"Generated 1 account."}],
+  "structuredContent": {"accounts":[{"email":"...","name":"...","password":"MyPassword123!"}]},
+  "isError": false
 }
 ```
 
 ## Generating Accounts
 
-### Generate a single account
+Use `tools/call` with `name: "mega/generate"` and `arguments`:
+
+### Generate a single account (default password)
 ```json
-{"id":"1","method":"mega/generate","params":{}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"mega/generate","arguments":{}}}
 ```
 
-### Generate multiple accounts at once
+### Generate multiple accounts
 ```json
-{"id":"1","method":"mega/generate","params":{"count":3}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"mega/generate","arguments":{"count":3}}}
 ```
 
 ### Use a specific password
 ```json
-{"id":"1","method":"mega/generate","params":{"count":2,"password":"MySecurePass!"}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"mega/generate","arguments":{"count":2,"password":"MySecurePass!"}}}
 ```
 
-> **Note:** By default, up to 5 accounts can be generated per request.
+> **Note:** By default, up to 5 accounts can be generated per request. Initialize params must include `protocolVersion`, `clientInfo`, and `capabilities`; do not send `params:{}` for initialize.
 
 ## Options
 
@@ -91,14 +102,11 @@ cargo run -- --proxy-url http://127.0.0.1:8080
 
 ## Other Commands
 
-### Check server info
-```json
-{"id":"1","method":"server/info","params":null}
-```
+After the handshake (see Quick Start), you can list available tools. Server info is returned in the initialize response.
 
 ### List available tools
 ```json
-{"id":"1","method":"tools/list","params":null}
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
 ```
 
 ## Troubleshooting
@@ -111,7 +119,7 @@ cargo run -- --proxy-url http://127.0.0.1:8080
 - Check `stderr` or your log file for error messages.
 
 **How do I know it's working?**
-- Try the `server/info` command first. If you get a response, the server is running correctly.
+- If the initialize handshake returns a result, the server is running. Then send `notifications/initialized` and call `mega/generate`.
 
 ## Contributing
 
@@ -131,4 +139,4 @@ If this crate saves you time or helps your work, support is appreciated:
 
 ## License
 
-This project is licensed under the MIT License; see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License; see the [LICENSE](https://opensource.org/licenses/MIT) for details.
