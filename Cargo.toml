@@ -1,6 +1,6 @@
 [package]
 name = "meganz-account-generator-mcp"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 
 description = "A minimal MCP-style JSON-over-stdio server in Rust for generating MEGA.nz accounts"
